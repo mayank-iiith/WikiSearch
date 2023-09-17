@@ -12,15 +12,15 @@ WIKI_DUMP_XML_FILE_PATH = "wikiDump.xml"
 INDEX_FOLDER_PATH = "indexFolder"
 STAT_FILE_NAME = "fileStat.txt"
 
-
 MAX_WORD_CAP = 30
-TITLE_FILE_CAP = 2000
-INVERTED_INDEX_TEMP_FILE_CAP = 1000000
-FINAL_INDEX_FILE_CAP = 1000000
+TITLE_FILE_CAP = 20000
+INVERTED_INDEX_TEMP_FILE_CAP = 100000000
+FINAL_INDEX_FILE_CAP = 100000000
 STATS = {}
 
 
 def convertSize(fileSize):
+    # Convert file size into a human-readable format.
     KB = 1024
     MB = KB * 1024
     GB = MB * 1024
@@ -36,6 +36,7 @@ def convertSize(fileSize):
     return convertedSize
 
 def get_index_size():
+    # Calculate the total size of index files.
     index_size = 0
     for file in os.listdir(INDEX_FOLDER_PATH):
         if(file.startswith("index_") or file.startswith("secondary_index") or file.startswith("title")):
@@ -46,6 +47,7 @@ def get_index_size():
 
 
 def generate_statistics():
+    # Generate and write statistics to a file.
     global STAT_FILE_NAME
     with open(STAT_FILE_NAME, "w", encoding='utf-8') as stat_fp:
         stat_fp.write("Total Documents: \t\t\t\t" + str(STATS["TotalDocCount"]) + "\n")
@@ -61,6 +63,7 @@ def generate_statistics():
 
 
 def purgeFiles(folderName, fileNamePrefix) :
+    # Delete files in a folder that have a specified prefix.
     for file in os.listdir(folderName):
         if file.startswith(fileNamePrefix):
             os.remove(os.path.join(folderName, file))
@@ -72,8 +75,7 @@ if __name__ == "__main__":
         print("Expected 3 arguments: <path_to_wiki_xml_dump> <path_to_index_folder> <stat_file_name>")
         exit(1)
 
-    # global WIKI_DUMP_XML_FILE_PATH, INDEX_FOLDER_PATH, STAT_FILE_NAME
-
+    # Set the paths and filenames based on command-line arguments.
     WIKI_DUMP_XML_FILE_PATH = os.path.abspath(sys.argv[1])
     INDEX_FOLDER_PATH = os.path.abspath(sys.argv[2])
     STAT_FILE_NAME = sys.argv[3]
@@ -86,27 +88,29 @@ if __name__ == "__main__":
         print("Index folder doesn't exist, creating index folder : '", sys.argv[2], "'", sep = '')
         os.mkdir(INDEX_FOLDER_PATH)
 
-    
+    # Delete files with specific prefixes to prepare for indexing.
     purgeFiles(INDEX_FOLDER_PATH, "title_")
     purgeFiles(INDEX_FOLDER_PATH, "temp_index_")
     purgeFiles(INDEX_FOLDER_PATH, "index_")
-    purgeFiles(INDEX_FOLDER_PATH, "secondary_index_")
+    purgeFiles(INDEX_FOLDER_PATH, "secondary_index")
     purgeFiles("./", STAT_FILE_NAME)
 
     start_time = datetime.utcnow()
 
-    # create a WikiHandler object
+    # Create a WikiHandler object to process the XML dump and build the primary index.
     wikiHandler = WikiHandler(INDEX_FOLDER_PATH, MAX_WORD_CAP, TITLE_FILE_CAP, INVERTED_INDEX_TEMP_FILE_CAP, FINAL_INDEX_FILE_CAP)
 
-    # parsing xml wiki dump file & Building Primary Index
+    # Parse the XML wiki dump file and build the primary index.
     wikiParser = xml.sax.make_parser()
     wikiParser.setFeature(xml.sax.handler.feature_namespaces, 0)
     wikiParser.setContentHandler(wikiHandler)
     wikiParser.parse(WIKI_DUMP_XML_FILE_PATH)
 
+    # Delete temporary index files.
     purgeFiles(INDEX_FOLDER_PATH, "temp_index_")
     primary_end_time = datetime.utcnow()
 
+    # Store statistics about the indexing process.
     STATS["TotalDocCount"] = wikiHandler.TotalDocCount
     STATS["TotalWordsEncountered"] = wikiHandler.TotalWordsEncountered
     STATS["TotalWords"] = wikiHandler.TotalWords
@@ -116,14 +120,18 @@ if __name__ == "__main__":
     STATS["PrimaryIndexTime"] = (primary_end_time - start_time).total_seconds()
     print("Primary Index creation time:", STATS["PrimaryIndexTime"], "seconds")
 
-    # Building Secondary Index
+    # Build the secondary index.
     secondaryIndexHandler = SecondaryIndexHandler(INDEX_FOLDER_PATH)
     secondaryIndexHandler.build_secondary_index()
     secondary_end_time = datetime.utcnow()
 
+    # Store statistics about the secondary index creation process.
     STATS["SecondaryIndexFileCount"] = secondaryIndexHandler.SecondaryIndexFileCount
     STATS["SecondaryIndexTime"] = (secondary_end_time - primary_end_time).total_seconds()
     print("Secondary Index creation time:", STATS["SecondaryIndexTime"], "seconds")
 
+    # Calculate the total size of index files.
     STATS["IndexSize"] = get_index_size()
+
+    # Generate and write statistics to the specified stat file.
     generate_statistics()
