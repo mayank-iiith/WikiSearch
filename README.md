@@ -1,10 +1,10 @@
 # wikiSearch: Wikipedia_Search_Engine
 
-# Description
+## Description
 
 * Implemented a search engine on the Wikipedia dump of size 90 GB. To retrieve results faster and more relevant, indexing and ranking are implemented. A relevance ranking algorithm is implemented using the TF-IDF score to rank documents. Creating an index takes around 16 hr on a given Wikipedia dump. The result is retrieved in less than 2 seconds.
 
-# Prerequisites
+## Prerequisites
 
 * python3
 * For preprocessing, stop_word removal, and Stemming, I have used nltk library.
