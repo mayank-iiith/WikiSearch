@@ -1,4 +1,4 @@
-# wikiSearch: Wikipedia_Search_Engine
+# WikiSearch: Wikipedia_Search_Engine
 
 ## Description
 
